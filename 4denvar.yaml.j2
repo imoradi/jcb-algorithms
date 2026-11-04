@@ -85,7 +85,7 @@ final:
 {% if final_increment_file is defined %}
   increment:
 {% filter indent(width=4) %}
-{% set final_increment_file = final_increment_file ~ '.yaml.j2' %}
+{% set final_increment_file = final_increment_file ~ '_4denvar.yaml.j2' %}
 {% include final_increment_file %}
 {% endfilter %}
 {% endif %}
