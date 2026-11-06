@@ -36,6 +36,13 @@ cost function:
 
   observations:
     obs perturbations: {{ obs_perturbations | default(false, true) }}
+{% if vader_custom_cookbook_file is defined %}
+    get values:
+{% filter indent(width=6) %}
+{% set vader_custom_cookbook_file = vader_custom_cookbook_file ~ '.yaml.j2' %}
+{% include vader_custom_cookbook_file %}
+{% endfilter %}
+{% endif %}
     observers:
 {% for observation_from_jcb in observations %}
 {% if use_observer(observation_from_jcb) %}
@@ -56,47 +63,61 @@ variational:
 {% include var_outer_loop_file %}
 {% endfilter %}
 {% endfor %}
-
-final:
-  diagnostics:
-    departures: {{final_diagnostics_departures}}
 {% if final_prints_frequency is defined %}
   prints:
     frequency: {{final_prints_frequency}}
 {% endif %}
 
-# Optional final fields to write out
-{% if final_increment_to_latlon_file is defined %}
-  increment to structured grid:
-{% filter indent(width=4) %}
-{% set final_increment_to_latlon_file = final_increment_to_latlon_file ~ '.yaml.j2' %}
-{% include final_increment_to_latlon_file %}
-{% endfilter %}
-{% endif %}
-
-{% if final_analysis_to_latlon_file is defined %}
-  analysis to structured grid:
-{% filter indent(width=4) %}
-{% set final_analysis_to_latlon_file = final_analysis_to_latlon_file ~ '.yaml.j2' %}
-{% include final_analysis_to_latlon_file %}
-{% endfilter %}
-{% endif %}
-
-{% if final_increment_file is defined %}
-  increment:
-{% filter indent(width=4) %}
-{% set final_increment_file = final_increment_file ~ '_4denvar.yaml.j2' %}
-{% include final_increment_file %}
-{% endfilter %}
-{% endif %}
-
-# Optionally write out the final analysis
-{% if output_file is defined %}
+{% set has_analysis_output = output_file is defined or final_analysis_to_latlon_file is defined %}
+{% set has_increment_output = final_increment_file is defined or final_increment_to_latlon_file is defined %}
 output:
-{% filter indent(width=2) %}
-{% set output_file = output_file ~ '.yaml.j2' %}
-{% include output_file %}
+{% if not has_analysis_output and not has_increment_output %}
+  {}
+{% else %}
+  diagnostics:
+    departures: {{final_diagnostics_departures}}
+{% if has_analysis_output %}
+  analysis:
+{% if output_file is defined and final_analysis_to_latlon_file is defined %}
+    -
+{% filter indent(width=6) %}
+{% include output_file + '.yaml.j2' %}
 {% endfilter %}
+    -
+{% filter indent(width=6) %}
+{% include final_analysis_to_latlon_file + '.yaml.j2' %}
+{% endfilter %}
+{% elif output_file is defined %}
+{% filter indent(width=4) %}
+{% include output_file + '.yaml.j2' %}
+{% endfilter %}
+{% else %}
+{% filter indent(width=4) %}
+{% include final_analysis_to_latlon_file + '.yaml.j2' %}
+{% endfilter %}
+{% endif %}
+{% endif %}
+{% if has_increment_output %}
+  increment:
+{% if final_increment_file is defined and final_increment_to_latlon_file is defined %}
+    -
+{% filter indent(width=6) %}
+{% include final_increment_file + '_4denvar.yaml.j2' %}
+{% endfilter %}
+    -
+{% filter indent(width=6) %}
+{% include final_increment_to_latlon_file + '.yaml.j2' %}
+{% endfilter %}
+{% elif final_increment_file is defined %}
+{% filter indent(width=4) %}
+{% include final_increment_file + '_4denvar.yaml.j2' %}
+{% endfilter %}
+{% else %}
+{% filter indent(width=4) %}
+{% include final_increment_to_latlon_file + '.yaml.j2' %}
+{% endfilter %}
+{% endif %}
+{% endif %}
 {% endif %}
 
 # Optionally test the application
